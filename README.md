@@ -1,20 +1,26 @@
 # dantto4k
 
+## このフォークは
+このフォークは以下を目的としたものです。
+- すでに復号されたMMTSを対象とすることで、ACASやスマートカードの処理を省き、RaspberryPIなど非x86_64のLinuxでもビルドできるようにする
+- LinuxのEDCBで動作するBondriverのビルド（BonDriver_dantto4k.so）
+- tsduckの依存関係が多すぎるので必要なソースだけスタティックビルド（AIを利用して対象ソースの選定をしています）
+
 ## 使用方法
 
-### dantto4k.exe
-MMTSから復号化およびMPEG-2 TSへの変換を行います。
+### dantto4k
+既に復号されているMMTSからMPEG-2 TSへの変換を行います。
 ```
 Usage:
   dantto4k [OPTION...] input output ('-' for stdin/stdout)
 
-      --listSmartCardReader     List available smart card readers
-      --casProxyServer arg      Specify the address of a CasProxyServer
-      --smartCardReaderName arg
+      --listSmartCardReader     List available smart card readers（* このフォークでは無効）
+      --casProxyServer arg      Specify the address of a CasProxyServer （* このフォークでは無効）
+      --smartCardReaderName arg （* このフォークでは無効）
                                 Specify the smart card reader to use
-      --customWinscardDLL arg   Specify the path to a winscard.dll
+      --customWinscardDLL arg   Specify the path to a winscard.dll （* このフォークでは無効）
       --disableADTSConversion   Disable ADTS conversion
-      --frontend-descrambled    Assume the input stream was already
+      --frontend-descrambled    Assume the input stream was already （* このフォークでは無条件にこのオプションが定義されたものとして扱う）
                                 descrambled by the frontend, and only
                                 remux MMT/TLV to MPEG-2 TS
       --no-progress             Disable progress display
@@ -49,20 +55,21 @@ https://github.com/nekohkr/casproxyserver
 ### Ubuntu
 
 ```bash
-sudo apt install make g++ libssl-dev libpcsclite-dev pcscd pkgconf
-
-git clone https://github.com/nekohkr/dantto4k.git
+git clone https://github.com/matching/dantto4k.git
 cd dantto4k
 git submodule update --init --recursive
 
-cd thirdparty/tsduck
-scripts/install-prerequisites.sh
 make -j10
-make install
+sudo cp ./build-linux/BonDriver_dantto4k.so /usr/local/lib/edcb
+sudo cp ./ini/BonDriver_dantto4k.ini /usr/local/lib/edcb
+# おそらく実害ないですが、"Error: configuration file 'dtv' not found" のエラー抑止
+sudo cp ./build-linux/tsduck.dtv.names /usr/local/lib/edcb
+```
 
-cd ../..
-make
-make install
+### BonDriver_dantto4k.ini の bondriverPath の設定例
+```
+[bondriver]
+bondriverPath=/usr/local/lib/edcb/BonDriver_LinuxMirakc.so
 ```
 
 ## References

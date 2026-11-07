@@ -1,10 +1,15 @@
 #include "bonTuner.h"
 #include <iostream>
 #include <mutex>
+#include <cstring>
 #include "config.h"
 #include "bonDriverContext.h"
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
 
 bool CBonTuner::init() {
+#ifdef _WIN32
 	HINSTANCE hBonDriverDLL = LoadLibraryA(config.bondriverPath.c_str());
 	if (!hBonDriverDLL) {
 		std::cerr << "Failed to load BonDriver: " << std::showbase << std::hex << GetLastError() << std::endl;
@@ -33,6 +38,37 @@ bool CBonTuner::init() {
 	}
 
 	return true;
+#else
+	void* hBonDriverSo = dlopen(config.bondriverPath.c_str(), RTLD_NOW | RTLD_LOCAL);
+	if (!hBonDriverSo) {
+		const char* err = dlerror();
+		std::cerr << "Failed to load BonDriver: " << (err ? err : "unknown error") << std::endl;
+		return false;
+	}
+
+	IBonDriver2* (*CreateBonDriver)();
+	*(void**)(&CreateBonDriver) = dlsym(hBonDriverSo, "CreateBonDriver");
+
+	if (!CreateBonDriver) {
+		dlclose(hBonDriverSo);
+		hBonDriverSo = nullptr;
+
+		std::cerr << "Failed to get address CreateBonDriver()" << std::endl;
+		return false;
+	}
+
+	pBonDriver2 = CreateBonDriver();
+
+	if (!pBonDriver2) {
+		dlclose(hBonDriverSo);
+		hBonDriverSo = nullptr;
+
+		std::cerr << "Failed to get IBonDriver" << std::endl;
+		return false;
+	}
+
+	return true;
+#endif
 }
 
 const bool CBonTuner::OpenTuner(void) {

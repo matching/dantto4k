@@ -4,9 +4,11 @@
 #include "remuxerHandler.h"
 #include "config.h"
 #include "mmtTlvDemuxer.h"
+#ifndef DANTTO4K_NO_CAS
 #include "casProxyClient.h"
 #include "acasHandler.h"
 #include "smartCard.h"
+#endif
 #include "bufferedOutput.h"
 #include "progressReporter.h"
 
@@ -65,6 +67,7 @@ Args parseArguments(int argc, char* argv[]) {
         args.input = result["input"].as<std::string>();
         args.output = result["output"].as<std::string>();
 
+#ifndef DANTTO4K_NO_CAS
         if (result["casProxyServer"].count()) {
             std::string casProxyServer = result["casProxyServer"].as<std::string>();
             if (!casProxyServer.empty()) {
@@ -77,6 +80,7 @@ Args parseArguments(int argc, char* argv[]) {
                 args.casProxyPort = parsed->second;
             }
         }
+#endif
 
         if (result["smartCardReaderName"].count()) {
             args.smartCardReaderName = result["smartCardReaderName"].as<std::string>();
@@ -130,6 +134,10 @@ Args parseArguments(int argc, char* argv[]) {
 }
 
 void printReaderList(const Args& args) {
+#ifdef DANTTO4K_NO_CAS
+    (void)args;
+    std::cerr << "Smart card support is disabled in this build (DANTTO4K_NO_CAS)" << std::endl;
+#else
     try {
         std::unique_ptr<ISmartCard> smartCard;
         if (args.casProxyHost.empty()) {
@@ -149,6 +157,7 @@ void printReaderList(const Args& args) {
     catch (const std::runtime_error& e) {
         std::cerr << e.what() << std::endl;
     }
+#endif
 }
 
 }
@@ -157,6 +166,10 @@ int main(int argc, char* argv[]) {
     constexpr size_t chunkSize = 1024 * 1024 * 5; // 5MB
 
     Args args = parseArguments(argc, argv);
+#ifdef DANTTO4K_NO_CAS
+    // No ACAS decryption in this build: always behave as if --frontend-descrambled was given.
+    args.frontendDescrambled = true;
+#endif
 #ifdef WIN32
     config.customWinscardDLL = args.customWinscardDLL;
 #endif
@@ -239,6 +252,7 @@ int main(int argc, char* argv[]) {
     demuxer.setDemuxerHandler(handler);
     demuxer.setAssumeDescrambled(args.frontendDescrambled);
 
+#ifndef DANTTO4K_NO_CAS
     if (!args.frontendDescrambled) {
         try {
             // Create ACAS handler and initialize the smart card
@@ -260,6 +274,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     }
+#endif
 
     std::vector<uint8_t> inputBuffer;
     std::vector<uint8_t> readBuffer(chunkSize);
