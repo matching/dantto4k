@@ -63,7 +63,7 @@ make -j10
 sudo cp ./build-linux/BonDriver_dantto4k.so /usr/local/lib/edcb
 sudo cp ./ini/BonDriver_dantto4k.ini /usr/local/lib/edcb
 # おそらく実害ないですが、"Error: configuration file 'dtv' not found" のエラー抑止
-sudo cp ./build-linux/tsduck.dtv.names /usr/local/lib/edcb
+sudo cp ./build-linux/tsduck.dtv.names /usr/local/bin
 ```
 
 ### BonDriver_dantto4k.ini の bondriverPath の設定例
